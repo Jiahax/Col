@@ -1,0 +1,83 @@
+http://blog.csdn.net/yangyi22/article/details/7555662
+
+SQL Server 中根据字段值查询其所在的表、字段
+假如字段值=123456，根据其查询表名和字段名
+DECLARE @what varchar(800)
+SET @what='123456' --要搜索的字符串
+DECLARE @sql varchar(8000)
+DECLARE TableCursor CURSOR LOCAL FOR
+SELECT sql='IF EXISTS ( SELECT 1 FROM ['+o.name+']
+WHERE ['+c.name+'] LIKE ''%'+@what+'%'' ) PRINT ''[字段值所在的表.字段]：['+o.name+'].['+c.name+']'''
+FROM syscolumns c JOIN sysobjects o ON c.id=o.id
+  
+  
+-- 175=char 56=int 可以查 select * from sys.types
+WHERE o.xtype='U' AND c.status>=0 AND c.xusertype IN (175, 239, 231, 167 )
+OPEN TableCursor
+FETCH NEXT FROM TableCursor INTO @sql
+WHILE @@FETCH_STATUS=0
+BEGIN
+    EXEC( @sql )
+    FETCH NEXT FROM TableCursor INTO @sql
+END
+CLOSE TableCursor
+-- 删除游标引用
+DEALLOCATE TableCursor
+
+
+
+Oracle 中根据字段值查询其所在的表、字段
+假如字段值=123456，根据其查询表名和字段名
+--Oracle 根据字段值查询其所在的表、字段
+Function 1
+DECLARE
+CURSOR cur_query IS
+  SELECT table_name, column_name, data_type FROM user_tab_columns;
+  a NUMBER;
+  sql_hard VARCHAR2(2000);
+  vv NUMBER;
+BEGIN
+  FOR rec1 IN cur_query LOOP
+  a:=0;
+  IF rec1.data_type ='VARCHAR2' OR rec1.data_type='CHAR' THEN
+  a := 1;
+  END IF;
+  IF a>0 THEN
+  sql_hard := '';
+  sql_hard := 'SELECT count(*) FROM '|| rec1.table_name ||' where '
+  ||rec1.column_name|| ' like''123456''';--字段值
+  dbms_output.put_line(sql_hard);
+  EXECUTE IMMEDIATE sql_hard INTO vv;
+  IF vv > 0 THEN dbms_output.put_line('[字段值所在的表.字段]:['||rec1.table_name||'].['||rec1.column_name||']');
+  END IF;
+  END IF;
+  END LOOP;
+END;
+
+Function2
+--Oracle 根据字段值查询其所在的表、字段
+DECLARE
+CURSOR cur_query IS
+  SELECT table_name, column_name, data_type FROM user_tab_columns;
+  a NUMBER;
+  sql_hard VARCHAR2(2000);
+  vv NUMBER;
+BEGIN
+  FOR rec1 IN cur_query LOOP
+  a:=0;
+  IF rec1.data_type ='NUMBER' THEN
+  a := 1;
+  END IF;  
+  IF a>0 THEN
+  sql_hard := '';
+  sql_hard := 'SELECT COUNT(*) FROM  '|| rec1.table_name ||' WHERE '
+  ||rec1.column_name
+  || '=123456';--字段值
+  dbms_output.put_line(sql_hard);
+  EXECUTE IMMEDIATE sql_hard INTO vv;
+  IF vv > 0 THEN
+   dbms_output.put_line('[字段值所在的表.字段]:['||rec1.table_name||'].['||rec1.column_name||']');
+  END IF;
+  END IF;
+  END LOOP;
+END;
