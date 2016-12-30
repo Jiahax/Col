@@ -1,0 +1,239 @@
+using OfficeOpenXml;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ProjectGordon.ConsoleApp
+{
+
+    /// <summary>
+    /// This class does the heavy lifting when reading/writing to excel
+    /// </summary>
+    public static class ExcelHelper
+    {
+        /// <summary>
+        /// Take an excel file and turn it into an enumerable of object
+        /// </summary>
+        /// <typeparam name="T">the object that should represent a row in the excel file</typeparam>
+        /// <param name="file">the excel file to parse</param>
+        /// <param name="sheet">the sheet in the excel file to parse</param>
+        /// <param name="firstRowHasColumns">Does the first row in the sheet have the column headers</param>
+        /// <returns>a collection of objects representing the rows in the excel file</returns>
+        public static IEnumerable<T> Parse<T>(string file, string sheet, bool firstRowHasColumns = true)
+            where T : new()
+        {
+            //Use reflection to get a list of all the properties in the destination object
+            var columns = typeof(T).GetProperties().ToList();
+            var source = new FileInfo(file);
+
+            //Ensure that one of the columns is set to primary otherwise we will never stop reading the excel file
+            if (!columns.SelectMany(x => x.GetCustomAttributes(false).OfType<ColumnAttribute>())
+                .Any(x => x.Primary == true))
+            {
+                throw new Exception("The Destination type must have properties decorated with the Column Attributes and one must be set as Primary.");
+            }
+
+            if (!source.Exists)
+                throw new Exception(string.Format("We dont have the excel '{0}' file you asked for", file));
+
+            //crack open the excel file
+            using (var package = new ExcelPackage(source))
+            {
+                bool more = true;
+                int row = 1;
+                ExcelWorksheet currentWorksheet = package.Workbook.Worksheets[sheet];
+
+                if (currentWorksheet == null)
+                    throw new Exception(string.Format("We dont have the sheet '{0}' you asked for.", sheet));
+
+                //Increment to jump over the header row 
+                if (firstRowHasColumns)
+                    row++;
+
+                //Loop until we run out of data
+                while (more)
+                {
+                    //create a new empty object and loop over each of the properties
+                    var tmp = new T();
+                    foreach (var column in columns)
+                    {
+                        //Do we want the data for this property
+                        var attribute = column.GetCustomAttributes(false)
+                            .OfType<ColumnAttribute>().FirstOrDefault();
+
+                        if (attribute != null)
+                        {
+                            string value = string.Empty;
+
+                            //pluck the value out of excel
+                            if (currentWorksheet.Cells[row, attribute.Ordinal].Value != null)
+                                value = currentWorksheet.Cells[row, attribute.Ordinal].Value.ToString();
+
+                            //set the value into the object
+                            SetValue<T>(ref tmp, column, value);
+
+                            //should we continue
+                            if (attribute.Primary && string.IsNullOrEmpty(value))
+                            {
+                                more = false;
+                            }
+                        }
+                    }
+                    row++;
+
+                    //only return if we are still looping
+                    if (more)
+                        yield return tmp;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Turn a collection of objects into an excel sheet
+        /// </summary>
+        /// <typeparam name="T">The type of object that should be a row in the sheet</typeparam>
+        /// <param name="file">the destination file to fill</param>
+        /// <param name="sheet">the destination sheet to fill</param>
+        /// <param name="rows">the source dataset</param>
+        public static void RenderDetail<T>(string file, string sheet, IEnumerable<T> rows)
+            where T : new()
+        {
+            var columns = typeof(T).GetProperties().ToList();
+            var dest = new FileInfo(file);
+
+            //Ensure that we have something to output
+            if (!columns.SelectMany(x => x.GetCustomAttributes(false).OfType<ColumnAttribute>()).Any())
+            {
+                throw new Exception("The Destination type must have properties decorated with the Column Attributes.");
+            }
+
+            using (var package = new ExcelPackage(dest))
+            {
+                if (package.Workbook.Worksheets[sheet] != null)
+                    throw new Exception(string.Format("Destination sheet '{0}' already exists", sheet));
+
+                int rowNumber = 1;
+                ExcelWorksheet currentWorksheet = package.Workbook.Worksheets.Add(sheet);
+
+                //write out the Header Row
+                foreach (var column in columns)
+                {
+                    var attribute = column.GetCustomAttributes(false)
+                        .OfType<ColumnAttribute>().FirstOrDefault();
+
+                    if (attribute != null)
+                    {
+                        currentWorksheet.Cells[rowNumber, attribute.Ordinal].Value = attribute.ColumnName;
+                    }
+                }
+                rowNumber++;
+
+                //write out the Body Rows
+                foreach (var row in rows)
+                {
+                    foreach (var column in columns)
+                    {
+                        var attribute = column.GetCustomAttributes(false)
+                            .OfType<ColumnAttribute>().FirstOrDefault();
+
+                        if (attribute != null)
+                        {
+                            currentWorksheet.Cells[rowNumber, attribute.Ordinal].Value = column.GetValue(row);
+                        }
+                    }
+                    rowNumber++;
+
+                }
+
+                //update the column widths to autofit based on the data we just added
+                currentWorksheet.Cells[1, 1, rowNumber, columns.Count()].AutoFitColumns();
+
+                //Save the workbook
+                package.Save();
+            }
+        }
+
+
+        /// <summary>
+        /// Turn a single object into an excel sheet
+        /// </summary>
+        /// <typeparam name="T">The type of object that should makeup the sheet</typeparam>
+        /// <param name="file">the destination file to fill</param>
+        /// <param name="sheet">the destination sheet to fill</param>
+        /// <param name="rows">the source data object</param>
+        public static void RenderSummary<T>(string file, string sheet, T row)
+            where T : new()
+        {
+            var columns = typeof(T).GetProperties().ToList();
+            var dest = new FileInfo(file);
+
+            //Ensure that we have something to output
+            if (!columns.SelectMany(x => x.GetCustomAttributes(false).OfType<ColumnAttribute>()).Any())
+            {
+                throw new Exception("The Destination type must have properties decorated with the Column Attributes.");
+            }
+
+            using (var package = new ExcelPackage(dest))
+            {
+                if (package.Workbook.Worksheets[sheet] != null)
+                    throw new Exception(string.Format("Destination sheet '{0}' already exists", sheet));
+
+                ExcelWorksheet currentWorksheet = package.Workbook.Worksheets.Add(sheet);
+
+                //write out the Data
+                foreach (var column in columns)
+                {
+                    var attribute = column.GetCustomAttributes(false)
+                        .OfType<ColumnAttribute>().FirstOrDefault();
+
+                    if (attribute != null)
+                    {
+                        currentWorksheet.Cells[attribute.Ordinal, 1].Value = attribute.ColumnName;
+                        currentWorksheet.Cells[attribute.Ordinal, 2].Value = column.GetValue(row);
+                    }
+                }
+
+                //update the column widths to autofit based on the data we just added
+                currentWorksheet.Cells[1, 1, columns.Count(), 2].AutoFitColumns();
+
+                //Save the workbook
+                package.Save();
+            }
+        }
+
+        /// <summary>
+        /// Helper method to write a field into a object using reflection
+        /// </summary>
+        /// <typeparam name="T">the type of object in question</typeparam>
+        /// <param name="tmp">and instance of the object to fill</param>
+        /// <param name="column">the column/property we want to fill</param>
+        /// <param name="value">the value we want to put in it</param>
+        private static void SetValue<T>(ref T tmp, PropertyInfo column, string value)
+            where T : new()
+        {
+            //What the type of data do we want to convert the string into
+            if (column.PropertyType == typeof(Int32))
+            {
+                int i = 0;
+                if (int.TryParse(value, out i))
+                    column.SetValue(tmp, i);
+            }
+            else if (column.PropertyType == typeof(DateTime))
+            {
+                DateTime d;
+                if (DateTime.TryParse(value, out d))
+                    column.SetValue(tmp, d);
+            }
+            else
+            {
+                column.SetValue(tmp, value);
+            }
+        }
+
+
+    }
+}
