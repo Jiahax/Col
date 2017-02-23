@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+</head>
+<style type="text/css">
+	*{margin: 0; padding: 0}
+	li{list-style-type: none; padding-bottom: 50px}
+	img{height: 160px}
+	html,body{ height: 100%}
+	.container,.page{position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+	.container{ overflow: hidden;}
+	.page{ overflow-y: auto; -webkit-overflow-scrolling: touch;}
+</style>
+<body>
+	<div class="page">
+		<ul>
+			<li><img src="img/loading.gif" data-src="img/code.jpg"/></li>
+			<li><img src="img/loading.gif" data-src="img/code.jpg"/></li>
+			<li><img src="img/loading.gif" data-src="img/code.jpg"/></li>
+			<li><img src="img/loading.gif" data-src="img/code.jpg"/></li>
+			<li><img src="img/loading.gif" data-src="img/code.jpg"/></li>
+			<li><img src="img/loading.gif" data-src="img/code.jpg"/></li>
+			<li><img src="img/loading.gif" data-src="img/code.jpg"/></li>
+			<li><img src="img/loading.gif" data-src="img/code.jpg"/></li>
+			<li><img src="img/loading.gif" data-src="img/code.jpg"/></li>
+			<li><img src="img/loading.gif" data-src="img/code.jpg"/></li>
+		</ul>
+	</div>
+</body>
+<script type="text/javascript">
+	var scrollElement = document.querySelector('.page'),
+	viewH = document.documentElement.clientHeight; //可见区域高度
+
+	function lazyload(){
+		var nodes = document.querySelectorAll('img[data-src]');
+
+		Array.prototype.forEach.call(nodes,function(item,index){
+		var rect;
+		if(item.dataset.src==='') return;
+
+		rect = item.getBoundingClientRect();  //来获取页面元素的位置
+
+		if(rect.bottom>=0 && rect.top < viewH){
+			(function(item){
+			  var img = new Image();
+			  img.onload = function(){
+				setTimeout(function(){
+				  item.src = img.src;
+				}, 500)
+			  }
+			  img.src = item.dataset.src
+			  item.dataset.src = ''
+			})(item)
+		}
+		});
+	}
+	
+	lazyload();
+	
+	scrollElement.addEventListener('scroll',throttle(lazyload,500,1000));
+	
+	function throttle(fun, delay, time) {
+		var timeout,
+			startTime = new Date();
+		return function() {
+			var context = this,
+				args = arguments,
+				curTime = new Date();
+			clearTimeout(timeout);
+			if (curTime - startTime >= time) {
+				fun.apply(context, args);
+				startTime = curTime;
+			} else {
+				timeout = setTimeout(fun, delay);
+			}
+		};
+	};
+</script>
+</html>
