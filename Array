@@ -1,0 +1,40 @@
+function obj2key(obj, keys) {
+  var n = keys.length,
+  key = []
+  while (n--) {
+    key.push(obj[keys[n]]);
+  }
+  return key.join("|");
+}
+
+function uniqeByKeys(array, keys) {
+  var arr = [];
+  var hash = {};
+  for(var i = 0, j = array.length; i < j; i++) {
+    var k = obj2key(array[i], keys);
+    if(!(k in hash) {
+      hash[k] = true;
+      arr.push(array[i]);
+    }
+  }
+  console.log(arr);
+} 
+
+
+
+
+// method 2
+function groupByCreateTime(data) {
+  console.log(data);
+  var groupData = [];
+  $.each(data, function(i, x) {
+    let key = x.createTime.split(" ")[0];
+    if (!!groupData[key]) {
+      groupData[key].push(x);
+    } else {
+      groupData[key] = [];
+      groupData[key].push(x);
+    }
+  });
+  console.log(groupData);
+}
