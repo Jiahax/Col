@@ -1,0 +1,68 @@
+设置代理  188:1087
+npm config set proxy http://xxxx:xxxx 
+npm config set https-proxy http://xxxx:xxxx
+
+npm config delete proxy
+
+-g 全局
+
+更新npm 
+npm install npm@latest -g
+
+安装module
+npm install -g typescript
+npm install -g angular-cli     新版  npm install -g @angular/cli
+
+卸载module	npm uninstall -g XXX
+清缓存		npm cache clean
+下载最新版	npm install -g @angular/cli@latest
+
+npm install XXX --save              默认到package.json的dependencies中
+
+npm install --save-dev @angular/cli@latest   添加到devdependencies中
+
+npm install angular2-cookie --save		安装angular2的cookie
+
+
+步骤：
+1、新建项目	ng new projectname      （npm install 加载一些module到项目中） 
+2、新建组件	ng generate component comname
+
+3、ng serve   默认4200端口         (指定端口:ng serve --port XXXX)
+
+逻辑一般用*开头，例如*ngFor、*ngIf
+事件一般写在()中间，例如(click)="function()"
+属性一般写在[]中间，例如[ngClass]、[ngStyle]、[ngModel]
+
+打包到dist文件夹
+ng build      没有压缩js
+
+ng build -prod     压缩js
+
+网址
+
+http://stackoverflow.com/questions/35944749/what-is-the-difference-between-parentheses-brackets-and-asterisks-in-angular2
+
+查看兼容版本
+http://caniuse.com/
+
+yum install gstreamer-plugins-ugly
+
+
+
+npm i ng2-table --save				表格
+	
+npm install --save ng2-echarts		echarts
+
+npm install font-awesome --save		字体图标库
+
+npm install angular2-cache --save	cache
+
+
+升级到最新版
+
+在Linux/Mac上
+npm install @angular/{common,compiler,compiler-cli,core,forms,http,platform-browser,platform-browser-dynamic,platform-server,router,animations}@latest typescript@latest --save
+
+在Windows上：
+npm install @angular/common@latest @angular/compiler@latest @angular/compiler-cli@latest @angular/core@latest @angular/forms@latest @angular/http@latest @angular/platform-browser@latest @angular/platform-browser-dynamic@latest @angular/platform-server@latest @angular/router@latest @angular/animations@latest typescript@latest --save
