@@ -1,5 +1,8 @@
 https://www.cnblogs.com/guyun/p/4589115.html
 
+在SQLServer2008中，当设计（修改）表结构之后，再用SQL语句时，列名会显示无效，但执行可以通过。
+原因是SQL Server的intellisense（智能感知功能）需要重新整理一下，用快捷键Ctrl+Shift+R即可
+
 web服务控件就是可以在服务器执行的控件，
 优势在于可以回传数据（ViewState），带有事件驱动（doPostBack），简化了Html标签的使用，使得开发ASP.net程序可以像开发Winform程序一样简单。
 Web服务控件最终还是被渲染（Render）为Html标签。使用WEB服务控件的劣势是会生成一些无用的属性、ViewState等，
