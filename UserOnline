@@ -1,0 +1,104 @@
+public static class UserOnline
+{
+    /// <summary>
+    /// 获取或设置在线列表
+    /// </summary>
+    public static Hashtable OnlineUserList
+    {
+        get
+        {
+            if (HttpContext.Current.Application["OnlineUserList"] == null)
+            {
+                Hashtable onlineUserList = new Hashtable();
+                HttpContext.Current.Application["OnlineUserList"] = onlineUserList;
+            }
+
+            return (Hashtable)HttpContext.Current.Application["OnlineUserList"];
+        }
+        set
+        {
+            HttpContext.Current.Application["OnlineUserList"] = value;
+        }
+    }
+
+    /// <summary>
+    /// 添加在线成员
+    /// </summary>
+    public static bool OnlineUserList_Add(string key, string value)
+    {
+        try
+        {
+            if (OnlineUserList.Contains(key))
+                OnlineUserList[key] = value;
+            else
+                OnlineUserList.Add(key, value);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 添加在线成员
+    /// </summary>
+    public static bool OnlineUserList_Add(string key)
+    {
+        string value = DateTime.Now.ToString();
+        return OnlineUserList_Add(key, value);
+    }
+
+    /// <summary>
+    /// 离线删除用户
+    /// </summary>
+    public static bool OnlineUserList_Delete(string key)
+    {
+        bool re = false;
+        if (OnlineUserList.Contains(key))
+        {
+            Hashtable userList = OnlineUserList;
+            userList.Remove(key);
+            OnlineUserList = userList;
+            return true;
+        }
+        return re;
+    }
+
+    /// <summary>
+    /// 判断用户是否在线
+    /// </summary>
+    public static bool UserIsOnline(string adminName)
+    {
+        OnlineClearUserOutTimeInOnLineList();
+        return OnlineUserList.Contains(adminName) ? true : false;
+    }
+
+    /// <summary>
+    /// 删除超时在线用户
+    /// </summary>
+    public static void OnlineClearUserOutTimeInOnLineList()
+    {
+        int OnlineTimeOut = 20;
+        Hashtable list = new Hashtable();
+        Hashtable temList = new Hashtable();
+        list = OnlineUserList;
+        temList = new Hashtable(list);
+        foreach (DictionaryEntry de in temList)
+        {
+            //删除超时
+            DateTime onlineTime = Convert.ToDateTime(de.Value);
+            TimeSpan timeSpan = DateTime.Now - onlineTime;
+
+            //在线时间和当前时间间隔大于超时分钟数就删除(注：用户非法关闭浏览器)
+            if (timeSpan.TotalMinutes >= (double)OnlineTimeOut)
+            {
+                list.Remove(de.Key);
+            }
+
+        }
+
+        OnlineUserList = list;
+    }
+
+}
